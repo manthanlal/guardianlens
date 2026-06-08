@@ -1,0 +1,41 @@
+# GuardianLens - Python Dependencies
+
+# Web framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+
+# HTTP requests
+httpx==0.27.0
+requests==2.31.0
+
+# NLP & text analysis
+transformers==4.41.0
+torch==2.3.0
+langdetect==1.0.9
+
+# URL scanning & safety
+validators==0.28.3
+tldextract==5.1.2
+python-whois==0.9.4
+
+# Environment & config
+python-dotenv==1.0.1
+pydantic==2.7.1
+pydantic-settings==2.2.1
+
+# Azure / Foundry IQ SDK
+azure-identity==1.16.0
+azure-ai-projects==1.0.0b3
+
+# Reporting & templates
+jinja2==3.1.4
+weasyprint==62.3
+
+# Testing
+pytest==8.2.0
+pytest-asyncio==0.23.6
+httpx==0.27.0
+
+# Utilities
+python-multipart==0.0.9
+aiofiles==23.2.1

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GuardianLens — Safety Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1d2e;
+      border-bottom: 1px solid #2d3148;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header .logo { font-size: 24px; }
+    header h1 { font-size: 20px; font-weight: 700; color: #fff; }
+    header p  { font-size: 13px; color: #7c8db5; margin-top: 2px; }
+
+    .badge {
+      margin-left: auto;
+      background: #1e3a5f;
+      color: #60a5fa;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #2563eb44;
+    }
+
+    main { padding: 32px; max-width: 1100px; margin: 0 auto; }
+
+    /* ── Stats cards ── */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+
+    .stat-card {
+      background: #1a1d2e;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .stat-card .label { font-size: 12px; color: #7c8db5; text-transform: uppercase; letter-spacing: .05em; }
+    .stat-card .value { font-size: 36px; font-weight: 700; margin: 8px 0 4px; }
+    .stat-card .sub   { font-size: 12px; color: #7c8db5; }
+
+    .stat-card.green .value { color: #34d399; }
+    .stat-card.yellow .value { color: #fbbf24; }
+    .stat-card.red .value   { color: #f87171; }
+    .stat-card.blue .value  { color: #60a5fa; }
+
+    /* ── Scanner ── */
+    .scanner {
+      background: #1a1d2e;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .scanner h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+    .scan-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .scan-row input, .scan-row select {
+      flex: 1;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+    }
+    .scan-row input:focus, .scan-row select:focus { border-color: #3b82f6; }
+
+    .btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn.secondary { background: #1e3a5f; color: #60a5fa; }
+    .btn.secondary:hover { background: #1e3a5f; opacity: .85; }
+
+    /* ── Result ── */
+    #result {
+      display: none;
+      margin-top: 16px;
+      border-radius: 10px;
+      padding: 16px 20px;
+      border-left: 4px solid;
+    }
+    #result.safe     { background: #064e3b22; border-color: #34d399; }
+    #result.low      { background: #1e3a5f22; border-color: #60a5fa; }
+    #result.medium   { background: #78350f22; border-color: #fbbf24; }
+    #result.high, #result.dangerous { background: #7c2d1222; border-color: #f97316; }
+    #result.critical, #result.blocked { background: #7f1d1d22; border-color: #f87171; }
+
+    #result .r-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    #result .r-body  { font-size: 13px; color: #a0aec0; line-height: 1.6; }
+    #result .r-action {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #2d3148;
+      color: #e2e8f0;
+    }
+
+    /* ── Alert banner ── */
+    #alert-banner {
+      display: none;
+      background: #7f1d1d22;
+      border: 1px solid #ef4444;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #fca5a5;
+    }
+
+    /* ── Events log ── */
+    .events { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 12px; padding: 24px; }
+    .events h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #2d3148;
+      font-size: 13px;
+    }
+    .event-item:last-child { border-bottom: none; }
+
+    .event-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .dot-green  { background: #34d399; }
+    .dot-yellow { background: #fbbf24; }
+    .dot-red    { background: #f87171; }
+
+    .event-type { font-weight: 600; min-width: 120px; }
+    .event-desc { color: #7c8db5; flex: 1; }
+    .event-time { color: #4a5568; font-size: 11px; }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #4a5568;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🛡️</div>
+  <div>
+    <h1>GuardianLens</h1>
+    <p>AI-Powered Safety Dashboard</p>
+  </div>
+  <span class="badge">Powered by Microsoft Foundry IQ</span>
+</header>
+
+<main>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card green">
+      <div class="label">Overall Status</div>
+      <div class="value" id="stat-status">Safe</div>
+      <div class="sub">Last 7 days</div>
+    </div>
+    <div class="stat-card red">
+      <div class="label">Threats Blocked</div>
+      <div class="value" id="stat-blocked">0</div>
+      <div class="sub">Content & URLs</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="label">Flagged Items</div>
+      <div class="value" id="stat-flagged">0</div>
+      <div class="sub">For review</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="label">Total Scans</div>
+      <div class="value" id="stat-total">0</div>
+      <div class="sub">This session</div>
+    </div>
+  </div>
+
+  <!-- Scanner -->
+  <div class="scanner">
+    <h2>🔍 Real-Time Safety Scanner</h2>
+
+    <div class="scan-row">
+      <input type="text" id="scan-input" placeholder="Paste a message, post, or URL to scan..." />
+      <select id="scan-type">
+        <option value="full">Auto-detect</option>
+        <option value="content">Text only</option>
+        <option value="url">URL only</option>
+      </select>
+      <select id="scan-age">
+        <option value="">Age: Unknown</option>
+        <option value="10">Age: 10 (child)</option>
+        <option value="15">Age: 15 (teen)</option>
+        <option value="25">Age: 25 (adult)</option>
+      </select>
+      <button class="btn" onclick="runScan()">Scan Now</button>
+    </div>
+
+    <div id="result">
+      <div class="r-title" id="r-title"></div>
+      <div class="r-body" id="r-body"></div>
+      <span class="r-action" id="r-action"></span>
+    </div>
+
+    <div id="alert-banner" id="alert-banner"></div>
+  </div>
+
+  <!-- Event Log -->
+  <div class="events">
+    <h2>📋 Recent Safety Events</h2>
+    <div id="event-log">
+      <div class="event-item">
+        <div class="event-dot dot-green"></div>
+        <div class="event-type">System ready</div>
+        <div class="event-desc">GuardianLens is active and monitoring.</div>
+        <div class="event-time">just now</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  GuardianLens · Built for Microsoft Agents League Hackathon 2026 · Powered by Foundry IQ
+</footer>
+
+<script>
+  let scanCount = 0;
+  let blockedCount = 0;
+  let flaggedCount = 0;
+
+  async function runScan() {
+    const input = document.getElementById('scan-input').value.trim();
+    const type  = document.getElementById('scan-type').value;
+    const age   = document.getElementById('scan-age').value;
+
+    if (!input) { alert('Please enter text or a URL to scan.'); return; }
+
+    const resultEl = document.getElementById('result');
+    const alertEl  = document.getElementById('alert-banner');
+    resultEl.style.display = 'none';
+    alertEl.style.display  = 'none';
+
+    // Detect if it looks like a URL
+    const isURL = /^https?:\/\//i.test(input) || /^www\./i.test(input);
+    const endpoint = type === 'url' || (type === 'full' && isURL) ? '/scan/url' : '/scan/content';
+
+    const body = endpoint === '/scan/url'
+      ? { url: input, user_age: age ? parseInt(age) : null }
+      : { text: input, user_age: age ? parseInt(age) : null };
+
+    try {
+      const res  = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      scanCount++;
+      document.getElementById('stat-total').textContent = scanCount;
+
+      const level   = data.threat_level || data.risk || 'safe';
+      const allowed = data.guard_decision?.allowed ?? true;
+      const explain = data.explanation || data.reasons?.join('. ') || '';
+      const action  = data.recommended_action || data.guard_decision?.reason || '';
+      const alertMsg = data.guard_decision?.alert_message || '';
+
+      if (!allowed) { blockedCount++; document.getElementById('stat-blocked').textContent = blockedCount; }
+      else if (level !== 'safe') { flaggedCount++; document.getElementById('stat-flagged').textContent = flaggedCount; }
+
+      // Update overall status
+      const statusEl = document.getElementById('stat-status');
+      if (blockedCount > 5) { statusEl.textContent = 'High Risk'; statusEl.style.color = '#f87171'; }
+      else if (blockedCount > 0 || flaggedCount > 2) { statusEl.textContent = 'Moderate'; statusEl.style.color = '#fbbf24'; }
+
+      // Show result
+      const levelLabels = {
+        safe: '✅ Safe', low: '🔵 Low Risk', medium: '🟡 Medium Risk',
+        high: '🟠 High Risk', critical: '🔴 Critical Threat',
+        suspicious: '🟡 Suspicious', dangerous: '🟠 Dangerous', blocked: '🔴 Blocked',
+      };
+
+      resultEl.className = '';
+      resultEl.classList.add(level);
+      resultEl.style.display = 'block';
+      document.getElementById('r-title').textContent = levelLabels[level] || level;
+      document.getElementById('r-body').textContent  = explain;
+      document.getElementById('r-action').textContent = '⚡ Action: ' + action.replace(/_/g, ' ');
+
+      if (alertMsg) {
+        alertEl.style.display = 'block';
+        alertEl.textContent = alertMsg;
+      }
+
+      // Add to event log
+      addEvent(level, data.threat_type || data.risk || 'none', explain || 'Scan completed.');
+
+    } catch (err) {
+      resultEl.className = 'medium';
+      resultEl.style.display = 'block';
+      document.getElementById('r-title').textContent = '⚠️ API Error';
+      document.getElementById('r-body').textContent = 'Could not connect to GuardianLens API. Make sure the server is running.';
+      document.getElementById('r-action').textContent = '';
+    }
+  }
+
+  function addEvent(level, type, desc) {
+    const log = document.getElementById('event-log');
+    const dotClass = ['safe', 'low'].includes(level) ? 'dot-green'
+                   : level === 'medium' ? 'dot-yellow' : 'dot-red';
+    const div = document.createElement('div');
+    div.className = 'event-item';
+    div.innerHTML = `
+      <div class="event-dot ${dotClass}"></div>
+      <div class="event-type">${type.replace(/_/g,' ')}</div>
+      <div class="event-desc">${desc.slice(0, 80)}${desc.length > 80 ? '…' : ''}</div>
+      <div class="event-time">just now</div>
+    `;
+    log.insertBefore(div, log.firstChild);
+  }
+
+  // Allow Enter key to scan
+  document.getElementById('scan-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runScan();
+  });
+</script>
+</body>
+</html>
